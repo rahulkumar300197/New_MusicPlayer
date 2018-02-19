@@ -4,6 +4,9 @@ package com.example.sagar.new_mediaplayer;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
@@ -14,6 +17,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,6 +40,7 @@ public class AndroidBuildingMusicPlayerActivity extends AppCompatActivity implem
     private TextView songTitleLabel;
     private TextView songCurrentDurationLabel;
     private TextView songTotalDurationLabel;
+    private ImageView songThumbnailImg;
     // Media Player
     private  MediaPlayer mp;
     // Handler to update UI timer, progress bar etc,.
@@ -55,12 +60,7 @@ public class AndroidBuildingMusicPlayerActivity extends AppCompatActivity implem
         setContentView(R.layout.player);
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
-        int permission = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_EXTERNAL_STORAGE);
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // Log.i(TAG, "Permission to record denied");
-            makeRequest();
-        }
+
         btnPlay = (ImageButton) findViewById(R.id.btnPlay);
         btnForward = (ImageButton) findViewById(R.id.btnForward);
         btnBackward = (ImageButton) findViewById(R.id.btnBackward);
@@ -73,18 +73,32 @@ public class AndroidBuildingMusicPlayerActivity extends AppCompatActivity implem
         songTitleLabel = (TextView) findViewById(R.id.songTitle);
         songCurrentDurationLabel = (TextView) findViewById(R.id.songCurrentDurationLabel);
         songTotalDurationLabel = (TextView) findViewById(R.id.songTotalDurationLabel);
+        songThumbnailImg = (ImageView) findViewById(R.id.songThumbnailImg);
+
 
         // Mediaplayer
         mp = new MediaPlayer();
         songManager = new SongsManager();
         utils = new Utilities();
+        int permission = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            makeRequest();
+            songsList = songManager.getPlayList(Environment.getExternalStorageDirectory());
+        }
+        else {
+            songsList = songManager.getPlayList(Environment.getExternalStorageDirectory());
+        }
+
+
 
         // Listeners
         songProgressBar.setOnSeekBarChangeListener(this); // Important
         mp.setOnCompletionListener(this); // Important
 
         // Getting all songs list
-        songsList = songManager.getPlayList(Environment.getExternalStorageDirectory());
+
+
 
         btnPlay.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -244,6 +258,19 @@ public class AndroidBuildingMusicPlayerActivity extends AppCompatActivity implem
 
             // Changing Button Image to pause image
             btnPlay.setImageResource(R.drawable.btn_pause);
+            // Changing AlbumArt
+            android.media.MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(songsList.get(songIndex).get("songPath"));
+            byte [] data = mmr.getEmbeddedPicture();
+            if(data != null) {
+                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                songThumbnailImg.setImageBitmap(bitmap);
+                songThumbnailImg.setAdjustViewBounds(true);
+            }
+            else {
+                songThumbnailImg.setImageResource(R.drawable.cover);
+                songThumbnailImg.setAdjustViewBounds(true);
+            }
 
             // set Progress bar values
             songProgressBar.setProgress(0);
@@ -358,5 +385,6 @@ public class AndroidBuildingMusicPlayerActivity extends AppCompatActivity implem
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 101);
     }
+
 
 }
